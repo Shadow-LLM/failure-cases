@@ -1,0 +1,128 @@
+name: Failure case
+description: Report a real-world failure of an LLM chatbot or AI agent.
+title: "[Brief one-line description]"
+labels: ["unreviewed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Submit a failure case
+
+        Thank you for documenting this. A good failure case is **specific**, **reproducible**, and **clearly labeled**.
+
+        **Before submitting:**
+        - Search [existing issues](../) to avoid duplicates.
+        - Redact any personal information from prompts/outputs.
+        - If this is an undisclosed security vulnerability (0-day jailbreak with serious harm potential), **stop** and contact the affected provider via their security channel first. You can post a sanitized version here after their disclosure window.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What kind of failure is this?
+      options:
+        - Hallucination (factual / citation / code)
+        - Jailbreak (safety bypass)
+        - Prompt injection (direct or indirect)
+        - Agent loop (infinite / repetitive tool calls)
+        - Tool misuse (wrong tool, wrong args, destructive action)
+        - Over-refusal (false-positive safety refusal)
+        - Sycophancy (uncritical agreement / validation)
+        - Alignment failure (deceptive / power-seeking / manipulative)
+        - Destructive action (rm, drop table, force-push, send email)
+        - Multimodal failure (vision / audio mishandling)
+        - Other (describe in body)
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: Exact model name and version if known.
+      placeholder: e.g. claude-opus-4-7, gpt-5-2026-04, gemini-2.5-pro
+    validations:
+      required: true
+
+  - type: input
+    id: surface
+    attributes:
+      label: Surface
+      description: Where did this happen? Chat UI, API, agent harness, IDE plugin, etc.
+      placeholder: e.g. claude.ai, OpenAI API + custom agent harness, Cursor
+    validations:
+      required: true
+
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt / setup
+      description: The user prompt or system+user setup that triggered the failure. Use code blocks.
+      render: markdown
+      placeholder: |
+        ```
+        System: You are a helpful assistant.
+        User: ...
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed output
+      description: What the model actually did. Paste the response or describe the behavior.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What a correct or acceptable response would look like.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      options:
+        - "Reproduces every time (5/5 attempts)"
+        - "Reproduces often (3-4/5 attempts)"
+        - "Reproduces sometimes (1-2/5 attempts)"
+        - "One-off observation (not yet retested)"
+        - "Unknown / unable to retest"
+    validations:
+      required: true
+
+  - type: textarea
+    id: threat-model
+    attributes:
+      label: Threat model / why it matters
+      description: |
+        Who is the realistic attacker or affected party? What's the consequence if this happens at scale?
+        E.g. "Production coding agents with shell access" or "Lay users asking medical questions".
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Related work, prior art, partial mitigations you've tried, anything else.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Submission checklist
+      options:
+        - label: I have searched existing issues for duplicates.
+          required: true
+        - label: I have redacted personal information from prompts and outputs.
+          required: true
+        - label: This is not an undisclosed 0-day with serious harm potential (or, if it is, I have already initiated responsible disclosure with the affected provider).
+          required: true

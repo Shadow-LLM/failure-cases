@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Mission & scope
+    url: https://shadow-llm.com/#mission
+    about: What we collect, what we don't, and why.
+  - name: Responsible disclosure
+    url: https://github.com/Shadow-LLM/failure-cases/blob/main/DISCLOSURE.md
+    about: Do not file undisclosed 0-day vulnerabilities here.
