@@ -6,17 +6,32 @@ on:
   issue_comment:
     types: [created, edited, deleted]
 
+# Collapse rapid bursts of issue/comment events down to a single deploy.
+# When multiple events fire in quick succession (e.g. batch-publishing from
+# mine-arxiv), only the last one runs the dispatch — earlier ones get
+# cancelled before the HTTP POST. Combined with the 15s debounce sleep,
+# this means N rapid issue events → 1 dispatch → 1 deploy.
+concurrency:
+  group: trigger-rebuild
+  cancel-in-progress: true
+
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
+      # Small debounce so closely-spaced events land in the same concurrency
+      # window. New events arriving during the sleep cancel this run before
+      # the dispatch fires.
+      - name: Debounce window
+        run: sleep 15
+
       - name: Dispatch content-changed event to shadow-llm-web
         env:
           # Personal access token (classic or fine-grained) with `repo` scope
           # on Shadow-LLM/shadow-llm-web. Store as a secret in this repo.
           DISPATCH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
         run: |
-          curl -X POST \
+          curl -sS -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $DISPATCH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
