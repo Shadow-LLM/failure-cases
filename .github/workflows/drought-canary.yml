@@ -1,0 +1,57 @@
+name: Drought canary
+
+# Watchdog for the arXiv auto-mining pipeline that publishes failure cases.
+#
+# The pipeline runs daily on an NCSU server (crontab -> mine-arxiv/bin/daily.sh).
+# When it silently stalls -- e.g. the local `claude` CLI starts timing out, or
+# the arXiv RSS feeds go down -- no new issues get created and the site simply
+# stops updating, with nobody noticing. That exact failure happened 2026-10-02
+# through 2026-10-20 (18 days of zero output).
+#
+# This job runs every day and FAILS when no new case has been published in the
+# last N days. A failed scheduled workflow makes GitHub email the maintainer
+# (the account that last modified this cron), which is the alert channel --
+# no SMTP, no secrets, no local mail tooling required.
+on:
+  schedule:
+    # 15:00 UTC daily, ~3h after the 12:00 UTC (08:00 America/New_York) mining
+    # run, so a healthy same-day publish has already landed before we check.
+    - cron: "0 15 * * *"
+  workflow_dispatch: # lets the maintainer run the check on demand
+
+permissions:
+  issues: read
+
+jobs:
+  check-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alert if no new case in the last 4 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          THRESHOLD_DAYS: "4"
+        run: |
+          set -euo pipefail
+
+          latest=$(gh api \
+            "repos/${{ github.repository }}/issues?state=all&per_page=1&sort=created&direction=desc" \
+            -q '.[0].created_at')
+
+          if [ -z "$latest" ] || [ "$latest" = "null" ]; then
+            echo "::error title=Drought canary::No issues exist in ${{ github.repository }} at all."
+            exit 1
+          fi
+
+          latest_epoch=$(date -u -d "$latest" +%s)
+          now_epoch=$(date -u +%s)
+          age_days=$(( (now_epoch - latest_epoch) / 86400 ))
+
+          echo "Most recent published case: $latest"
+          echo "Age: ${age_days} full day(s) ago (threshold: ${THRESHOLD_DAYS})"
+
+          if [ "$age_days" -ge "$THRESHOLD_DAYS" ]; then
+            echo "::error title=Mining pipeline drought::No new failure case has been published in ${age_days} days (threshold ${THRESHOLD_DAYS}). The arXiv auto-mining pipeline on the NCSU server has likely stalled. Check: (1) crontab -l is intact, (2) ~/shadow-mine.log tail for 'claude timed out ... SIGKILL' or 'all 4 RSS feeds failed', (3) the local claude CLI still works (claude -p 'ping')."
+            exit 1
+          fi
+
+          echo "OK: pipeline healthy (last case ${age_days}d < ${THRESHOLD_DAYS}d)."
